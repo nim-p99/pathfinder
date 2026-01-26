@@ -3,7 +3,6 @@ import Node from './Node';
 
 const NUM_ROWS = 20;
 const NUM_COLS = 30;
-const ANIMATION_SPEED = 1;
 
 
 // the app is conceptually a 2d grid, where each cell
@@ -23,7 +22,7 @@ function Grid() {
   // grid is where all the real data lives 
   const [grid, setGrid] = useState([]);
   const [mouseIsPressed, setMouseIsPressed] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(5);
+  const [animationSpeed, setAnimationSpeed] = useState(100);
   const [isRunning, setIsRunning] = useState(false);
   // ref to track running status in async loops 
   const isRunningRef = useRef(false);
@@ -40,7 +39,7 @@ function Grid() {
     else if (node.isEnd) setDraggedNodeType('end');
     else {
       toggleWall(row, col);
-      setDraggedNodeType(null);
+      // setDraggedNodeType(null);
     }
     setMouseIsPressed(true);
   };
@@ -54,7 +53,7 @@ function Grid() {
     } else if (draggedNodeType === 'end') {
       moveEndNode(row, col);
     } else {
-      toggleWall(row, col);
+      addWall(row, col);
     }
   };
 
@@ -154,7 +153,6 @@ function Grid() {
     // never mutate state directly!
     const newGrid = grid.map(r => r.map(node => ({ ...node})));
 
-
     // get node at position [row][col]
     const node = newGrid[row][col];
 
@@ -165,7 +163,25 @@ function Grid() {
 
     // update state 
     setGrid(newGrid)
-  }
+  };
+
+  const addWall = (row, col) => {
+    setGrid(prevGrid =>
+      prevGrid.map(r =>
+        r.map(node => {
+          if (
+            node.row === row &&
+            node.col === col &&
+            !node.isStart && 
+            !node.isEnd 
+          ) {
+            return {...node, isWall:true };
+          }
+          return node;
+        })
+      )
+    );
+  };
 
 
   // BREADTH FIRST SEARCH 
@@ -180,6 +196,7 @@ function Grid() {
     const newGrid = grid.map(row => row.map(node => ({ 
       ...node,
       isVisited: false,
+      isPath: false,
       previousNode: null
     })));
     setGrid(newGrid);
@@ -244,7 +261,11 @@ function Grid() {
   return (
     <>
       <div style={{ marginBottom: '10px' }}>
-        <button onClick={() => bfs(animationSpeed)} disabled={isRunning}>
+        <button onClick={() => {
+          clearPath();
+          bfs(animationSpeed);
+        }}
+          disabled={isRunning}>
           Start BFS
         </button>
         <button onClick={clearPath} style={{ marginLeft: '8px' }} disabled={isRunning}>
