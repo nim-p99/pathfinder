@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Node from './Node';
+import { bfs } from '../../algorithms/bfs';
+import Navbar from '../Navbar';
+import '../../styles/Grid.css';
 
 const NUM_ROWS = 20;
 const NUM_COLS = 30;
@@ -183,133 +186,109 @@ function Grid() {
     );
   };
 
+  const visualiseBFS = async () => {
+    clearPath();
 
-  // BREADTH FIRST SEARCH 
-  // contained in Grid.jsx as bfs needs access to the 
-  // entire grid. It modifies the node state and triggers
-  // re-rendering. 
-  const bfs = async (speed) => {
-    const delay = 105 - speed;
     isRunningRef.current = true;
     setIsRunning(true);
 
-    const newGrid = grid.map(row => row.map(node => ({ 
-      ...node,
-      isVisited: false,
-      isPath: false,
-      previousNode: null
-    })));
+    const newGrid = grid.map(row =>
+      row.map(node => ({
+        ...node,
+        isVisited: false,
+        previousNode: null,
+      }))
+    );
+
     setGrid(newGrid);
 
     const startNode = newGrid[startPos.row][startPos.col];
     const endNode = newGrid[endPos.row][endPos.col];
 
-    const queue = [startNode];
+    const { visitedNodesInOrder, shortestPath } = bfs(
+      newGrid,
+      startNode,
+      endNode 
+    );
 
-    while (queue.length) {
-      if (!isRunningRef.current) return;
+    await animateVisitedNodes(visitedNodesInOrder);
+    await animatePath(shortestPath);
 
-      const current = queue.shift();
-      if (current.isWall || current.isVisited) continue;
-
-      current.isVisited = true;
-      setGrid([...newGrid]); // update state for animation
-      // turn instant computation into visual stepping 
-      // use await, otherwise will complete in 1 frame 
-      await new Promise(resolve => setTimeout(resolve, delay));
-
-      if (current.row === endNode.row && current.col === endNode.col) {
-        // reached end, reconstruct path
-        let pathNode = current;
-        while (pathNode) {
-          if (!isRunningRef.current) return;
-          pathNode.isPath = true;
-          pathNode = pathNode.previousNode;
-          // newGrid = 2d array 
-          // [...newGrid] creates a new top-level array 
-          // react sees the reference change --> re-render
-          setGrid([...newGrid]);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        setIsRunning(false);
-        return;
-      }
-
-      // add neighbors
-      const { row, col } = current;
-      const neighbors = [
-        [row - 1, col],
-        [row + 1, col],
-        [row, col - 1],
-        [row, col + 1],
-      ];
-
-      neighbors.forEach(([r, c]) => {
-        if (r >= 0 && r < NUM_ROWS && c >= 0 && c < NUM_COLS) {
-          const neighbor = newGrid[r][c];
-          if (!neighbor.isVisited && !neighbor.isWall) {
-            neighbor.previousNode = current;
-            queue.push(neighbor);
-          }
-        }
-      });
-    }
+    isRunningRef.current = false;
     setIsRunning(false);
+  }
+
+
+  const animateVisitedNodes = async nodes => {
+    for (const node of nodes) {
+      if (!isRunningRef.current) return;
+      
+      setGrid(prevGrid => 
+        prevGrid.map(row =>
+          row.map(n =>
+            n.row === node.row && n.col === node.col
+              ? { ...n, isVisited: true }
+              : n 
+          )
+        )  
+      );
+
+      await new Promise(res => setTimeout(res, 105 - animationSpeed));
+    }
   };
-  
+
+  const animatePath = async path => {
+    for (const node of path) {
+      if (!isRunningRef.current) return;
+      
+      setGrid(prevGrid =>
+        prevGrid.map(row =>
+          row.map(n =>
+            n.row === node.row && n.col === node.col 
+              ? { ...n, isPath: true }
+              : n 
+          )
+        )
+      );
+
+      await new Promise(res => setTimeout(res, 40));
+    }
+  };
 
   return (
     <>
-      <div style={{ marginBottom: '10px' }}>
-        <button onClick={() => {
-          clearPath();
-          bfs(animationSpeed);
+      <Navbar 
+        onStartBFS={visualiseBFS}
+        onClearPath = {clearPath}
+        onClearWalls = {clearWalls}
+        onResetGrid = {clearGrid}
+        onStop={() => {
+          isRunningRef.current = false;
+          setIsRunning(false);
         }}
-          disabled={isRunning}>
-          Start BFS
-        </button>
-        <button onClick={clearPath} style={{ marginLeft: '8px' }} disabled={isRunning}>
-          Clear path 
-        </button>
-        <button onClick={clearWalls} style={{ marginLeft: '8px' }} disabled={isRunning}>
-          Clear walls 
-        </button>
-        <button onClick={clearGrid} style={{ marginLeft: '8px' }} disabled={isRunning}>
-          Reset grid 
-        </button>
-        <button onClick={() => { isRunningRef.current = false; setIsRunning(false); }} style={{ marginLeft: '8px' }}>
-          Stop 
-        </button>
-        <label>
-          Animation speed:
-          <input 
-            type="range"
-            value={animationSpeed}
-            min="1"
-            max="100"
-            onChange={e => setAnimationSpeed(Number(e.target.value))}
-            onMouseDown={e => e.stopPropagation()}
-            onMouseUp={e => e.stopPropagation()}
-          />
-        </label>
-      </div>
-      <div onMouseUp={handleMouseUp}>
-        {grid.map((row, rowIdx) => (
-          <div key={rowIdx} style={{ display: 'flex' }}>
-            {row.map(( node, nodeIdx) => (
-              <Node
-                key={nodeIdx}
-                isStart={node.isStart}
-                isEnd={node.isEnd}
-                isWall={node.isWall}
-                isVisited={node.isVisited}
-                isPath={node.isPath}
-                onMouseDown={() => handleMouseDown(node.row, node.col)}
-                onMouseEnter={() => handleMouseEnter(node.row, node.col)}
-              />
-            ))}
-          </div>
-        ))}
+        animationSpeed={animationSpeed}
+        setAnimationSpeed={setAnimationSpeed}
+        isRunning={isRunning}
+      />
+      <div className="grid-wrapper" onMouseUp={handleMouseUp}>
+        <div className="grid">
+          {grid.map((row, rowIdx) => (
+            <div key={rowIdx} className="grid-row">
+              {row.map(( node, nodeIdx) => (
+                <Node
+                  key={nodeIdx}
+                  isStart={node.isStart}
+                  isEnd={node.isEnd}
+                  isWall={node.isWall}
+                  isVisited={node.isVisited}
+                  isPath={node.isPath}
+                  onMouseDown={() => handleMouseDown(node.row, node.col)}
+                  onMouseEnter={() => handleMouseEnter(node.row, node.col)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );

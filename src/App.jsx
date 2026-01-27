@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import Node from './Grid/Node';
-import Grid from './Grid/Grid';
+import Grid from './components/Grid/Grid';
 
 
 function App() {

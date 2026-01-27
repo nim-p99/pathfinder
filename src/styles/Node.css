@@ -1,0 +1,56 @@
+.node {
+  width: 50px;
+  height: 50px;
+  border: 3px solid black;
+  display: inline-block;
+  transition: background-color 0.2s ease;
+  background-color: #9da3e0;
+
+}
+
+.node-start {
+  background-color: #2b722f;
+}
+
+.node-end {
+  background-color: #a0364b;
+}
+
+.node-wall {
+  background-color: #b26a1c;
+}
+
+.node-visited {
+  background-color: #4054B7;
+  animation: visit 0.3s ease forwards;
+}
+
+.node-path {
+  background-color: #bf2a79;
+  animation: path 0.3s ease forwards;
+}
+
+@keyframes visit {
+  0% {
+    transform: scale(0.3);
+    background-color: #9da3e0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    background-color: #4054b7;
+  }
+}
+
+@keyframes path {
+  0% {
+    transform: scale(0.6);
+    background-color: #ce4a90;
+  }
+  100% {
+    transform: scale(1);
+    background-color: #bf2a79;
+  }
+}
