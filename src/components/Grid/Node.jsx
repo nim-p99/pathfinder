@@ -12,8 +12,9 @@ function Node({
   isWall,
   isVisited,
   isPath,
-  onMouseDown,
-  onMouseEnter,
+  onPointerDown,
+  onPointerEnter,
+  onPointerUp,
 }) {
 
   let className = 'node';
@@ -25,8 +26,9 @@ function Node({
 
   return <div
     className={className}
-    onMouseDown={onMouseDown}
-    onMouseEnter={onMouseEnter}
+    onPointerDown={onPointerDown}
+    onPointerEnter={onPointerEnter}
+    onPointerUp={onPointerUp}
   ></div>;
 }
 

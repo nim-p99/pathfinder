@@ -311,8 +311,9 @@ function Grid() {
                   isWall={node.isWall}
                   isVisited={node.isVisited}
                   isPath={node.isPath}
-                  onMouseDown={() => handleMouseDown(node.row, node.col)}
-                  onMouseEnter={() => handleMouseEnter(node.row, node.col)}
+                  onPointerDown={() => handleMouseDown(node.row, node.col)}
+                  onPointerEnter={() => handleMouseEnter(node.row, node.col)}
+                  onPointerUp={handleMouseUp}
                 />
               ))}
             </div>
