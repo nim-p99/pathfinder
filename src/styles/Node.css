@@ -1,6 +1,6 @@
 .node {
-  width: 50px;
-  height: 50px;
+  width: 30px;
+  height: 30px;
   border: 3px solid black;
   display: inline-block;
   transition: background-color 0.2s ease;

@@ -6,7 +6,8 @@ import '../../styles/Grid.css';
 
 const NUM_ROWS = 20;
 const NUM_COLS = 30;
-
+const NODE_SIZE = 40;
+const NAVBAR_HEIGHT = 60;
 
 // the app is conceptually a 2d grid, where each cell
 // has a state. You can modify the cell state with 
@@ -33,6 +34,28 @@ function Grid() {
   const [draggedNodeType, setDraggedNodeType] = useState(null);
   const [startPos, setStartPos] = useState({ row:0, col:0 });
   const [endPos, setEndPos] = useState({ row:NUM_ROWS-1, col:NUM_COLS-1 });
+
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      const availableWidth = window.innerWidth;
+      const availableHeight = window.innerHeight - NAVBAR_HEIGHT;
+
+      const gridWidth = NUM_COLS * NODE_SIZE;
+      const gridHeight = NUM_ROWS * NODE_SIZE;
+
+      const scaleX = availableWidth / gridWidth;
+      const scaleY = availableHeight / gridHeight;
+
+      // don't scale up past 1 
+      setScale(Math.min(scaleX, scaleY, 1));
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
 
 
   // mouse down --> start drawing
@@ -271,7 +294,13 @@ function Grid() {
         isRunning={isRunning}
       />
       <div className="grid-wrapper" onMouseUp={handleMouseUp}>
-        <div className="grid">
+        <div
+          className="grid"
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: 'center center',
+          }}
+        >
           {grid.map((row, rowIdx) => (
             <div key={rowIdx} className="grid-row">
               {row.map(( node, nodeIdx) => (

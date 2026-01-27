@@ -21,10 +21,6 @@ function Navbar({
         Clear Path
       </button>
 
-      <button onClick={onClearWalls} disabled={isRunning}>
-        Clear Walls
-      </button>
-
       <button onClick={onResetGrid} disabled={isRunning}>
         Reset Grid
       </button>
