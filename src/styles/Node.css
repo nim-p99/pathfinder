@@ -1,8 +1,9 @@
 .node {
-  width: 30px;
-  height: 30px;
-  border: 3px solid black;
+  width: 40px;
+  height: 40px;
+  border: 1px solid white;
   display: inline-block;
+  box-sizing: border-box;
   transition: background-color 0.2s ease;
   background-color: #9da3e0;
   touch-action: none;

@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../styles/Node.css';
+import '../styles/Node.css';
 
 
 // Node does not change the data, hence why it does not 

@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import Grid from './components/Grid/Grid';
-import Grid2 from './components/Grid/Grid2';
+import Grid from './components/Grid';
 
 function App() {
 
   return (
     <>
       <div>
-        <Grid2 />
+        <Grid />
       </div>
     </>
   )

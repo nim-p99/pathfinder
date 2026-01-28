@@ -1,26 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Node from './Node';
-import { bfs } from '../../algorithms/bfs';
-import Navbar from '../Navbar';
-import '../../styles/Grid.css';
+import { bfs } from '../algorithms/bfs';
+import Navbar from './Navbar';
+import '../styles/Grid.css';
 
 const NUM_ROWS = 20;
-const NUM_COLS = 30;
+const NUM_COLS = 25;
 const NODE_SIZE = 40;
 const NAVBAR_HEIGHT = 60;
 
-function Grid2() {
+
+// grid = array of rows 
+// each row = array of nodes 
+// each node = plain JS object 
+
+function Grid() {
+
+  // grid is where all the real data goes 
   const [grid, setGrid] = useState([]);
   const [mouseIsPressed, setMouseIsPressed] = useState(false);
+  // track any dragged nodes. null | 'start' | 'end'
   const [draggedNodeType, setDraggedNodeType] = useState(null);
   const [startPos, setStartPos] = useState({ row: 0, col: 0 });
   const [endPos, setEndPos] = useState({ row: NUM_ROWS - 1, col: NUM_COLS - 1 });
   const [scale, setScale] = useState(1);
   const [animationSpeed, setAnimationSpeed] = useState(100);
   const [isRunning, setIsRunning] = useState(false);
+  // ref to track runing status in async loops 
   const isRunningRef = useRef(false);
+  const gridRef = useRef(null);
 
-  /** --- Grid Initialization --- */
+  // initialise grid 
   useEffect(() => {
     const initialGrid = [];
     for (let row = 0; row < NUM_ROWS; row++) {
@@ -42,7 +52,7 @@ function Grid2() {
     setGrid(initialGrid);
   }, []);
 
-  /** --- Scale grid to fit window --- */
+  // scale grid to fit inside window 
   useEffect(() => {
     const updateScale = () => {
       const availableWidth = window.innerWidth;
@@ -51,7 +61,7 @@ function Grid2() {
       const scaleX = availableWidth / (NUM_COLS * NODE_SIZE);
       const scaleY = availableHeight / (NUM_ROWS * NODE_SIZE);
 
-      setScale(Math.min(scaleX, scaleY, 1));
+      setScale(Math.min(scaleX, scaleY, 1)); // 1 = max 
     };
 
     updateScale();
@@ -59,18 +69,20 @@ function Grid2() {
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  /** --- Helpers to get cell from pointer --- */
+  
   const getCellFromPointer = (e) => {
-    const gridRect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - gridRect.left) / scale;
-    const y = (e.clientY - gridRect.top) / scale;
-    const col = Math.floor(x / NODE_SIZE);
-    const row = Math.floor(y / NODE_SIZE);
+    if (!gridRef.current) return null;
+
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const col = Math.floor(x / (NODE_SIZE * scale));
+    const row = Math.floor(y / (NODE_SIZE * scale));
     if (row < 0 || row >= NUM_ROWS || col < 0 || col >= NUM_COLS) return null;
     return { row, col };
   };
 
-  /** --- Pointer Events --- */
+  // mouse down --> start drawing 
   const handlePointerDown = (e, row, col) => {
     e.preventDefault();
     if (isRunningRef.current) return;
@@ -96,13 +108,15 @@ function Grid2() {
     else if (draggedNodeType === 'wall') addWall(row, col);
   };
 
+  // mouse up --> stop drawing 
   const handlePointerUp = () => {
     setMouseIsPressed(false);
     setDraggedNodeType(null);
   };
 
-  /** --- Grid Modification --- */
+
   const toggleWall = (row, col) => {
+
     setGrid((prevGrid) =>
       prevGrid.map((r) =>
         r.map((node) =>
@@ -129,38 +143,39 @@ function Grid2() {
   const moveStartNode = (newRow, newCol) => {
     if (newRow === startPos.row && newCol === startPos.col) return;
     setStartPos({ row: newRow, col: newCol });
-    setGrid((prevGrid) =>
-      prevGrid.map((row) =>
-        row.map((node) => {
-          if (node.isStart) return { ...node, isStart: false };
-          if (node.row === newRow && node.col === newCol)
-            return { ...node, isStart: true, isWall: false };
-          return node;
-        })
-      )
-    );
-    recomputePath(newRow, newCol, endPos.row, endPos.col);
+
+
+    const newGrid = grid.map((row) =>
+      row.map((node) => {
+        // remove old start 
+        if (node.isStart) return { ...node, isStart: false };
+        // set new start 
+        if (node.row === newRow && node.col === newCol)
+          return { ...node, isStart: true };
+        return node;
+      })
+      );
+    recomputePath(newGrid, newRow, newCol, endPos.row, endPos.col);
   };
 
   const moveEndNode = (newRow, newCol) => {
     if (newRow === endPos.row && newCol === endPos.col) return;
     setEndPos({ row: newRow, col: newCol });
-    setGrid((prevGrid) =>
-      prevGrid.map((row) =>
-        row.map((node) => {
-          if (node.isEnd) return { ...node, isEnd: false };
-          if (node.row === newRow && node.col === newCol)
-            return { ...node, isEnd: true, isWall: false };
-          return node;
-        })
-      )
+
+    const newGrid = grid.map((row) => 
+      row.map((node) => {
+        if (node.isEnd) return { ...node, isEnd: false };
+        if (node.row === newRow && node.col === newCol)
+          return { ...node, isEnd: true };
+        return node;
+      })
     );
-    recomputePath(startPos.row, startPos.col, newRow, newCol);
+    recomputePath(newGrid, startPos.row, startPos.col, newRow, newCol);
   };
 
-  /** --- Path & BFS --- */
-  const recomputePath = (startR = startPos.row, startC = startPos.col, endR = endPos.row, endC = endPos.col) => {
-    const newGrid = grid.map((row) =>
+  // if we move end/start node --> recompute the path 
+  const recomputePath = (gridToUse, startR = startPos.row, startC = startPos.col, endR = endPos.row, endC = endPos.col) => {
+    const newGrid = gridToUse.map((row) =>
       row.map((node) => ({
         ...node,
         isVisited: false,
@@ -171,10 +186,22 @@ function Grid2() {
 
     const startNode = newGrid[startR][startC];
     const endNode = newGrid[endR][endC];
+
+
+    // need path to disappear if wall is blocking a solution
+    // remember walls 
+    const startWasWall = startNode.isWall;
+    const endWasWall = endNode.isWall;
+    
+    startNode.isWall = false;
+    endNode.isWall = false;
+    // run bfs 
     const { shortestPath } = bfs(newGrid, startNode, endNode);
-
+    // draw path
     for (const node of shortestPath) node.isPath = true;
-
+    // restore wall status 
+    startNode.isWall = startWasWall;
+    endNode.isWall = endWasWall;
     setGrid(newGrid);
   };
 
@@ -199,7 +226,18 @@ function Grid2() {
     const startNode = newGrid[startPos.row][startPos.col];
     const endNode = newGrid[endPos.row][endPos.col];
 
+
+    // toggle walls so they are temporarily walkable for the algorithm 
+    const startWasWall = startNode.isWall;
+    const endWasWall = endNode.isWall;
+    startNode.isWall = false;
+    endNode.isWall = false;
+
     const { visitedNodesInOrder, shortestPath } = bfs(newGrid, startNode, endNode);
+
+    // restore wall status 
+    startNode.isWall = startWasWall;
+    endNode.isWall = endWasWall;
 
     await animateVisitedNodes(visitedNodesInOrder);
     await animatePath(shortestPath);
@@ -234,7 +272,7 @@ function Grid2() {
     }
   };
 
-  const clearPath = () => recomputePath(startPos.row, startPos.col, endPos.row, endPos.col);
+  const clearPath = () => recomputePath(grid, startPos.row, startPos.col, endPos.row, endPos.col);
 
   const clearWalls = () => {
     setGrid((prevGrid) =>
@@ -256,7 +294,6 @@ function Grid2() {
     );
   };
 
-  /** --- Render --- */
   return (
     <>
       <Navbar
@@ -280,6 +317,7 @@ function Grid2() {
         onPointerCancel={handlePointerUp}
       >
         <div
+          ref={gridRef}
           className="grid"
           style={{
             transform: `scale(${scale})`,
@@ -307,4 +345,4 @@ function Grid2() {
   );
 }
 
-export default Grid2;
+export default Grid;
