@@ -23,223 +23,279 @@ const NAVBAR_HEIGHT = 60;
 
 function Grid() {
 
-  // grid is where all the real data lives 
-  const [grid, setGrid] = useState([]);
-  const [mouseIsPressed, setMouseIsPressed] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(100);
-  const [isRunning, setIsRunning] = useState(false);
-  // ref to track running status in async loops 
-  const isRunningRef = useRef(false);
-  // track any dragged nodes.  null | 'start' | 'end'
-  const [draggedNodeType, setDraggedNodeType] = useState(null);
-  const [startPos, setStartPos] = useState({ row:0, col:0 });
-  const [endPos, setEndPos] = useState({ row:NUM_ROWS-1, col:NUM_COLS-1 });
+// grid is where all the real data lives 
+const [grid, setGrid] = useState([]);
+const [mouseIsPressed, setMouseIsPressed] = useState(false);
+const [animationSpeed, setAnimationSpeed] = useState(100);
+const [isRunning, setIsRunning] = useState(false);
+// ref to track running status in async loops 
+const isRunningRef = useRef(false);
+// track any dragged nodes.  null | 'start' | 'end'
+const [draggedNodeType, setDraggedNodeType] = useState(null);
+const [startPos, setStartPos] = useState({ row:0, col:0 });
+const [endPos, setEndPos] = useState({ row:NUM_ROWS-1, col:NUM_COLS-1 });
 
-  const [scale, setScale] = useState(1);
+const [scale, setScale] = useState(1);
 
-  useEffect(() => {
-    const updateScale = () => {
-      const availableWidth = window.innerWidth;
-      const availableHeight = window.innerHeight - NAVBAR_HEIGHT;
+useEffect(() => {
+  const updateScale = () => {
+    const availableWidth = window.innerWidth;
+    const availableHeight = window.innerHeight - NAVBAR_HEIGHT;
 
-      const gridWidth = NUM_COLS * NODE_SIZE;
-      const gridHeight = NUM_ROWS * NODE_SIZE;
+    const gridWidth = NUM_COLS * NODE_SIZE;
+    const gridHeight = NUM_ROWS * NODE_SIZE;
 
-      const scaleX = availableWidth / gridWidth;
-      const scaleY = availableHeight / gridHeight;
+    const scaleX = availableWidth / gridWidth;
+    const scaleY = availableHeight / gridHeight;
 
-      // don't scale up past 1 
-      setScale(Math.min(scaleX, scaleY, 1));
-    };
-
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
-
-
-  // mouse down --> start drawing
-  const handleMouseDown = (row, col) => {
-    const node = grid[row][col];
-    if (node.isStart) setDraggedNodeType('start');
-    else if (node.isEnd) setDraggedNodeType('end');
-    else {
-      toggleWall(row, col);
-      // setDraggedNodeType(null);
-    }
-    setMouseIsPressed(true);
+    // don't scale up past 1 
+    setScale(Math.min(scaleX, scaleY, 1));
   };
 
-  // mouse enter --> draw IF drawing 
-  const handleMouseEnter = (row, col) => {
-    if (!mouseIsPressed) return;
-    
-    if (draggedNodeType === 'start') {
-      moveStartNode(row, col);
-    } else if (draggedNodeType === 'end') {
-      moveEndNode(row, col);
-    } else {
-      addWall(row, col);
-    }
-  };
+  updateScale();
+  window.addEventListener('resize', updateScale);
+  return () => window.removeEventListener('resize', updateScale);
+}, []);
 
-  // mouse up --> stop drawing 
-  const handleMouseUp = (row, col) => {
-    setMouseIsPressed(false);
-    setDraggedNodeType(null);
+const getCellFromPointer = (e) => {
+    const gridRect = e.currentTarget
+      .querySelector('.grid')
+      .getBoundingClientRect();
+
+    const x = (e.clientX - gridRect.left) / scale;
+    const y = (e.clientY - gridRect.top) / scale;
+
+    const col = Math.floor(x / NODE_SIZE);
+    const row = Math.floor(y / NODE_SIZE);
+
+    if (
+      row < 0 || row >= NUM_ROWS ||
+      col < 0 || col >= NUM_COLS 
+    ) return null;
+
+    return { row, col };
   };
 
 
-  const moveStartNode = (newRow, newCol) => {
-    setGrid(prevGrid =>
-      prevGrid.map(row =>
-        row.map(node => {
-          // remove old start 
-          if (node.isStart) return { ...node, isStart: false };
-          // set new start 
-          if (node.row === newRow && node.col === newCol) return { ...node, isStart: true, isWall: false };
-          return node;
-        })
-      )
-    );
-    setStartPos({ row: newRow, col: newCol });
-  };
 
-  const moveEndNode = (newRow, newCol) => {
-    setGrid(prevGrid =>
-      prevGrid.map(row =>
-        row.map(node => {
-          if (node.isEnd) return { ...node, isEnd:false};
-          if (node.row === newRow && node.col === newCol) return { ...node, isEnd:true, isWall:false};
-          return node;
-        })
-      )
-    );
-    setEndPos({ row: newRow, col: newCol });
-  };
+const handlePointerMove = (e) => {
+  if (!mouseIsPressed || isRunningRef.current) return;
 
+  const cell = getCellFromPointer(e);
+  if (!cell) return;
 
-  const clearPath = () => {
-    const newGrid = grid.map(row =>
-      row.map(node => ({
-        ...node,
-        isVisited: false,
-        isPath: false,
-        previousNode: null,
-      }))
-    );
+  const { row, col } = cell;
 
-    setGrid(newGrid)
-  };
-
-  const clearWalls = () => {
-    const newGrid = grid.map(row =>
-      row.map(node => ({
-        ...node,
-        isWall: false,
-      }))
-    );
-
-    setGrid(newGrid);
-  };
-
-  const clearGrid = () => {
-    const newGrid = grid.map(row =>
-      row.map(node => ({
-        ...node,
-        isVisited: false,
-        isPath: false,
-        previousNode: null,
-        isWall: false,
-      }))
-    );
-    setGrid(newGrid);
+  if (draggedNodeType === 'start') {
+    moveStartNode(row, col);
+  } else if (draggedNodeType === 'end') {
+    moveEndNode(row, col);
+  } else if (draggedNodeType === 'wall') {
+    addWall(row, col);
   }
-  // initialise grid 
-  useEffect(() => {
-    // run this code ONCE, when component first appears 
-    const initialGrid = [];
-    for (let row=0; row<NUM_ROWS; row++) {
-      const currentRow = [];
-      for (let col=0; col<NUM_COLS; col++) {
-        currentRow.push({
-          row, col,
-          isStart: row === 0 && col === 0,
-          isEnd: row === NUM_ROWS-1 && col === NUM_COLS -1,
-          isWall: false,
-        });
-      }
-      initialGrid.push(currentRow);
+};
+
+
+// mouse down --> start drawing
+const handlePointerDown = (e, row, col) => {
+  e.preventDefault();
+  if (isRunningRef.current) return;
+
+  const node = grid[row][col];
+
+  if (node.isStart) setDraggedNodeType('start');
+  else if (node.isEnd) setDraggedNodeType('end');
+  else {
+    toggleWall(row, col);
+    setDraggedNodeType('wall');
+  }
+  setMouseIsPressed(true);
+};
+
+
+
+// mouse up --> stop drawing 
+const handlePointerUp = (row, col) => {
+  setMouseIsPressed(false);
+  setDraggedNodeType(null);
+};
+
+
+const moveStartNode = (newRow, newCol) => {
+  setStartPos({ row: newRow, col: newCol });
+
+  setGrid(prevGrid =>
+    prevGrid.map(row =>
+      row.map(node => {
+        // remove old start 
+        if (node.isStart) return { ...node, isStart: false };
+        // set new start 
+        if (node.row === newRow && node.col === newCol) 
+          return { ...node, isStart: true, isWall: false };
+        return node;
+      })
+    )
+  );
+  recomputePath();
+};
+
+const moveEndNode = (newRow, newCol) => {
+  setGrid(prevGrid =>
+    prevGrid.map(row =>
+      row.map(node => {
+        if (node.isEnd) return { ...node, isEnd:false};
+        if (node.row === newRow && node.col === newCol) return { ...node, isEnd:true, isWall:false};
+        return node;
+      })
+    )
+  );
+  setEndPos({ row: newRow, col: newCol });
+};
+
+
+const clearPath = () => {
+  const newGrid = grid.map(row =>
+    row.map(node => ({
+      ...node,
+      isVisited: false,
+      isPath: false,
+      previousNode: null,
+    }))
+  );
+
+  setGrid(newGrid)
+};
+
+const clearWalls = () => {
+  const newGrid = grid.map(row =>
+    row.map(node => ({
+      ...node,
+      isWall: false,
+    }))
+  );
+
+  setGrid(newGrid);
+};
+
+const clearGrid = () => {
+  const newGrid = grid.map(row =>
+    row.map(node => ({
+      ...node,
+      isVisited: false,
+      isPath: false,
+      previousNode: null,
+      isWall: false,
+    }))
+  );
+  setGrid(newGrid);
+}
+// initialise grid 
+useEffect(() => {
+  // run this code ONCE, when component first appears 
+  const initialGrid = [];
+  for (let row=0; row<NUM_ROWS; row++) {
+    const currentRow = [];
+    for (let col=0; col<NUM_COLS; col++) {
+      currentRow.push({
+        row, col,
+        isStart: row === 0 && col === 0,
+        isEnd: row === NUM_ROWS-1 && col === NUM_COLS -1,
+        isWall: false,
+      });
     }
-    setGrid(initialGrid);
-  }, []);  // we use [] to say dont rerun when state changes 
+    initialGrid.push(currentRow);
+  }
+  setGrid(initialGrid);
+}, []);  // we use [] to say dont rerun when state changes 
 
-  const toggleWall = (row, col) => {
-    // mak a copy of grid
-    // never mutate state directly!
-    const newGrid = grid.map(r => r.map(node => ({ ...node})));
+const toggleWall = (row, col) => {
+  // mak a copy of grid
+  // never mutate state directly!
+  const newGrid = grid.map(r => r.map(node => ({ ...node})));
 
-    // get node at position [row][col]
-    const node = newGrid[row][col];
+  // get node at position [row][col]
+  const node = newGrid[row][col];
 
-    // start/end cannot be wall 
-    if (!node.isStart && !node.isEnd) {
-      node.isWall = !node.isWall 
-    }
+  // start/end cannot be wall 
+  if (!node.isStart && !node.isEnd) {
+    node.isWall = !node.isWall 
+  }
 
-    // update state 
-    setGrid(newGrid)
-  };
+  // update state 
+  setGrid(newGrid)
+};
 
-  const addWall = (row, col) => {
-    setGrid(prevGrid =>
-      prevGrid.map(r =>
-        r.map(node => {
-          if (
-            node.row === row &&
-            node.col === col &&
-            !node.isStart && 
-            !node.isEnd 
-          ) {
-            return {...node, isWall:true };
-          }
-          return node;
-        })
-      )
-    );
-  };
+const addWall = (row, col) => {
+  setGrid(prevGrid =>
+    prevGrid.map(r =>
+      r.map(node => {
+        if (
+          node.row === row &&
+          node.col === col &&
+          !node.isStart && 
+          !node.isEnd 
+        ) {
+          return {...node, isWall:true };
+        }
+        return node;
+      })
+    )
+  );
+};
 
-  const visualiseBFS = async () => {
-    clearPath();
+const visualiseBFS = async () => {
 
-    isRunningRef.current = true;
-    setIsRunning(true);
+  isRunningRef.current = true;
+  setIsRunning(true);
 
+  const newGrid = grid.map(row =>
+    row.map(node => ({
+      ...node,
+      isVisited: false,
+      previousNode: null,
+      isPath: false,
+    }))
+  );
+
+  setGrid(newGrid);
+
+  const startNode = newGrid[startPos.row][startPos.col];
+  const endNode = newGrid[endPos.row][endPos.col];
+
+  const { visitedNodesInOrder, shortestPath } = bfs(
+    newGrid,
+    startNode,
+    endNode 
+  );
+
+  await animateVisitedNodes(visitedNodesInOrder);
+  await animatePath(shortestPath);
+
+  isRunningRef.current = false;
+  setIsRunning(false);
+}
+
+const recomputePath = () => {
     const newGrid = grid.map(row =>
       row.map(node => ({
         ...node,
         isVisited: false,
+        isPath: false,
         previousNode: null,
       }))
     );
-
-    setGrid(newGrid);
 
     const startNode = newGrid[startPos.row][startPos.col];
     const endNode = newGrid[endPos.row][endPos.col];
 
-    const { visitedNodesInOrder, shortestPath } = bfs(
-      newGrid,
-      startNode,
-      endNode 
-    );
+    const { shortestPath } = bfs(newGrid, startNode, endNode);
 
-    await animateVisitedNodes(visitedNodesInOrder);
-    await animatePath(shortestPath);
+    for (const node of shortestPath) {
+      node.isPath = true;
+    }
 
-    isRunningRef.current = false;
-    setIsRunning(false);
-  }
+    setGrid(newGrid);
+  };
 
 
   const animateVisitedNodes = async nodes => {
@@ -293,7 +349,12 @@ function Grid() {
         setAnimationSpeed={setAnimationSpeed}
         isRunning={isRunning}
       />
-      <div className="grid-wrapper" onMouseUp={handleMouseUp}>
+      <div 
+        className="grid-wrapper"
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
         <div
           className="grid"
           style={{
@@ -311,9 +372,7 @@ function Grid() {
                   isWall={node.isWall}
                   isVisited={node.isVisited}
                   isPath={node.isPath}
-                  onPointerDown={() => handleMouseDown(node.row, node.col)}
-                  onPointerEnter={() => handleMouseEnter(node.row, node.col)}
-                  onPointerUp={handleMouseUp}
+                  onPointerDown={(e) => handlePointerDown(e, node.row, node.col)}
                 />
               ))}
             </div>

@@ -13,8 +13,6 @@ function Node({
   isVisited,
   isPath,
   onPointerDown,
-  onPointerEnter,
-  onPointerUp,
 }) {
 
   let className = 'node';
@@ -27,8 +25,6 @@ function Node({
   return <div
     className={className}
     onPointerDown={onPointerDown}
-    onPointerEnter={onPointerEnter}
-    onPointerUp={onPointerUp}
   ></div>;
 }
 
