@@ -2,19 +2,32 @@ import React from 'react';
 import '../styles/Navbar.css';
 
 function Navbar({
-  onStartBFS,
+  onStart,
   onClearPath,
   onClearWalls,
   onResetGrid,
   onStop,
   animationSpeed,
   setAnimationSpeed,
-  isRunning
+  isRunning,
+  selectedAlgorithm,
+  setSelectedAlgorithm,
 }) {
   return (
     <div className="navbar">
-      <button onClick={onStartBFS} disabled={isRunning}>
-        Start BFS
+      <select 
+        value={selectedAlgorithm} 
+        onChange={(e) => setSelectedAlgorithm(e.target.value)}
+        disabled={isRunning}
+        className="algo-select"
+      >
+        <option value="BFS">Breadth First Search</option>
+        <option value="DFS">Depth First Search</option>
+        <option value="Dijkstra">Dijkstra</option>
+        <option value="AStar">A* Search</option>
+      </select>
+      <button className="start-btn" onClick={onStart} disabled={isRunning}>
+        Visualise {selectedAlgorithm}
       </button>
 
       <button onClick={onClearPath} disabled={isRunning}>

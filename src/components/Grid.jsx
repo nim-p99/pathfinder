@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Node from './Node';
-import { bfs } from '../algorithms/bfs';
 import Navbar from './Navbar';
 import '../styles/Grid.css';
+
+import { bfs } from '../algorithms/bfs';
+import { dfs } from '../algorithms/dfs';
+import { dijkstra } from '../algorithms/dijkstra';
+import { astar } from '../algorithms/astar';
 
 const NUM_ROWS = 20;
 const NUM_COLS = 25;
 const NODE_SIZE = 40;
 const NAVBAR_HEIGHT = 60;
-
 
 // grid = array of rows 
 // each row = array of nodes 
@@ -26,6 +29,7 @@ function Grid() {
   const [scale, setScale] = useState(1);
   const [animationSpeed, setAnimationSpeed] = useState(100);
   const [isRunning, setIsRunning] = useState(false);
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState('BFS');
   // ref to track runing status in async loops 
   const isRunningRef = useRef(false);
   const gridRef = useRef(null);
@@ -181,6 +185,9 @@ function Grid() {
         isVisited: false,
         isPath: false,
         previousNode: null,
+        distance: Infinity, // dijkstra 
+        gScore: Infinity,  // a*
+        fScore: Infinity,  // a*
       }))
     );
 
@@ -195,8 +202,26 @@ function Grid() {
     
     startNode.isWall = false;
     endNode.isWall = false;
-    // run bfs 
-    const { shortestPath } = bfs(newGrid, startNode, endNode);
+
+    let result;
+
+    switch (selectedAlgorithm) {
+      case 'DFS':
+        result = dfs(newGrid, startNode, endNode);
+        break;
+      case 'Dijkstra':
+        result = dijkstra(newGrid, startNode, endNode);
+        break;
+      case 'AStar':
+        result = astar(newGrid, startNode, endNode);
+        break;
+      case 'BFS':
+      default:
+        result = bfs(newGrid, startNode, endNode);
+        break;
+    }
+
+    const { shortestPath } = result;
     // draw path
     for (const node of shortestPath) node.isPath = true;
     // restore wall status 
@@ -205,47 +230,71 @@ function Grid() {
     setGrid(newGrid);
   };
 
-  const visualiseBFS = async () => {
+  const visualiseAlgorithm = async () => {
     if (!grid.length) return;
     if (isRunningRef.current) return;
 
     isRunningRef.current = true;
     setIsRunning(true);
 
-    // clear previous path but keep walls
-    const newGrid = grid.map((row) =>
+    // create a clean grid for ui 
+    const cleanGrid = grid.map((row) =>
       row.map((node) => ({
         ...node,
         isVisited: false,
         isPath: false,
+        distance: Infinity,
         previousNode: null,
       }))
     );
-    setGrid(newGrid);
+    // update ui to show clean gid
+    setGrid(cleanGrid);
 
-    const startNode = newGrid[startPos.row][startPos.col];
-    const endNode = newGrid[endPos.row][endPos.col];
+    // create separate copy for algo to run on 
+    const gridForAlgo = cleanGrid.map((row) =>
+      row.map((node) => ({ ...node }))
+    );
 
+    const startNode = gridForAlgo[startPos.row][startPos.col];
+    const endNode = gridForAlgo[endPos.row][endPos.col];
 
-    // toggle walls so they are temporarily walkable for the algorithm 
+    // only toggle walls on algo grid 
     const startWasWall = startNode.isWall;
     const endWasWall = endNode.isWall;
     startNode.isWall = false;
     endNode.isWall = false;
 
-    const { visitedNodesInOrder, shortestPath } = bfs(newGrid, startNode, endNode);
+    let result;
+    switch (selectedAlgorithm) {
+      case 'DFS':
+        result = dfs(gridForAlgo, startNode, endNode);
+        break;
+      case 'Dijkstra':
+        result = dijkstra(gridForAlgo, startNode, endNode);
+        break;
+      case 'AStar':
+        result = astar(gridForAlgo, startNode, endNode);
+        break;
+      case 'BFS':
+      default:
+        result = bfs(gridForAlgo, startNode, endNode);
+        break;
+    }
 
-    // restore wall status 
-    startNode.isWall = startWasWall;
-    endNode.isWall = endWasWall;
+    const { visitedNodesInOrder, shortestPath } = result;
 
+    // animate --> loop updates clean grid based on visitedNodesInOrder
     await animateVisitedNodes(visitedNodesInOrder);
-    await animatePath(shortestPath);
+    
+    // Only animate path if we actually found one
+    if (shortestPath.length > 0) {
+        await animatePath(shortestPath);
+    }
 
     isRunningRef.current = false;
     setIsRunning(false);
   };
-
+ 
   const animateVisitedNodes = async (nodes) => {
     for (const node of nodes) {
       if (!isRunningRef.current) return;
@@ -256,7 +305,7 @@ function Grid() {
           )
         )
       );
-      await new Promise((res) => setTimeout(res, 105 - animationSpeed));
+      await new Promise((res) => setTimeout(res, Math.max(10, 150 - animationSpeed)));
     }
   };
 
@@ -272,7 +321,23 @@ function Grid() {
     }
   };
 
-  const clearPath = () => recomputePath(grid, startPos.row, startPos.col, endPos.row, endPos.col);
+  const resetVisuals = () => {
+    const newGrid = grid.map((row) =>
+      row.map((node) => ({
+        ...node,
+        isVisited: false,
+        isPath: false,
+        distance: Infinity,
+        gScore: Infinity,
+        fScore: Infinity,
+        previousNode: null,
+      }))
+    );
+    setGrid(newGrid);
+  };
+
+  const clearPath = () => resetVisuals();
+
 
   const clearWalls = () => {
     setGrid((prevGrid) =>
@@ -297,8 +362,8 @@ function Grid() {
   return (
     <>
       <Navbar
-        onStartBFS={visualiseBFS}
-        onClearPath={clearPath}
+        onStart={visualiseAlgorithm}
+        onClearPath={resetVisuals}
         onClearWalls={clearWalls}
         onResetGrid={clearGrid}
         onStop={() => {
@@ -308,6 +373,11 @@ function Grid() {
         animationSpeed={animationSpeed}
         setAnimationSpeed={setAnimationSpeed}
         isRunning={isRunning}
+        selectedAlgorithm={selectedAlgorithm}
+        setSelectedAlgorithm={(algo) => {
+          setSelectedAlgorithm(algo);
+          resetVisuals();
+        }}
       />
 
       <div
