@@ -37,7 +37,7 @@ export function astar(grid, startNode, endNode) {
       if (neighbour.isWall) continue; 
 
       // distance from start to neighbor through current
-      const tentativeGScore = current.gScore + 1;
+      const tentativeGScore = current.gScore + neighbour.weight;
 
       // if this path is better than any previous one
       if (tentativeGScore < neighbour.gScore) {

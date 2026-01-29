@@ -12,6 +12,7 @@ function Node({
   isWall,
   isVisited,
   isPath,
+  weight,
   onPointerDown,
 }) {
 
@@ -21,11 +22,14 @@ function Node({
   else if (isWall) className += ' node-wall';
   else if (isPath) className += ' node-path';
   else if (isVisited) className += ' node-visited';
+  else if (weight > 1) className += ' node-weight'
 
   return <div
     className={className}
     onPointerDown={onPointerDown}
-  ></div>;
+  >
+  {weight > 1 && !isWall && !isStart && !isEnd ? weight : ''}
+  </div>;
 }
 
 

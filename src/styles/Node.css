@@ -19,7 +19,7 @@
 }
 
 .node-wall {
-  background-color: #b26a1c;
+  background-color: #a0811c;
 }
 
 .node-visited {
@@ -30,6 +30,16 @@
 .node-path {
   background-color: #bf2a79;
   animation: path 0.3s ease forwards;
+}
+
+.node-weight {
+  background-color: #b26a1c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: #555;
 }
 
 @keyframes visit {

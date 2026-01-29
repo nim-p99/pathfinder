@@ -41,7 +41,7 @@ function sortNodesByDistance(unvisitedNodes) {
 function updateUnvisitedNeighbours(node, grid) {
   const unvisitedNeighbours = getNeighbours(node, grid).filter(n => !n.isVisited);
   for (const neighbour of unvisitedNeighbours) {
-    neighbour.distance = node.distance + 1;
+    neighbour.distance = node.distance + neighbour.weight;
     neighbour.previousNode = node;
   }
 }

@@ -30,6 +30,7 @@ function Grid() {
   const [animationSpeed, setAnimationSpeed] = useState(100);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('BFS');
+  const [selectedBrush, setSelectedBrush] = useState('wall');
   // ref to track runing status in async loops 
   const isRunningRef = useRef(false);
   const gridRef = useRef(null);
@@ -49,6 +50,7 @@ function Grid() {
           isVisited: false,
           isPath: false,
           previousNode: null,
+          weight: 1,
         });
       }
       initialGrid.push(currentRow);
@@ -72,7 +74,28 @@ function Grid() {
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
   }, []);
+  
 
+  const drawOnGrid = (row, col) => {
+    setGrid((prevGrid) =>
+      prevGrid.map((r) =>
+        r.map((node) => {
+          if (node.row === row && node.col === col && !node.isStart && !node.isEnd) {
+            
+            // if brush = wall, toggle isWall.
+            // if brush is a number, set weight and remove wall
+            if (selectedBrush === 'wall') {
+               return { ...node, isWall: !node.isWall, weight: 1 };
+            } else {
+               const newWeight = parseInt(selectedBrush);
+               return { ...node, isWall: false, weight: newWeight };
+            }
+          }
+          return node;
+        })
+      )
+    );
+  };
   
   const getCellFromPointer = (e) => {
     if (!gridRef.current) return null;
@@ -95,8 +118,9 @@ function Grid() {
     if (node.isStart) setDraggedNodeType('start');
     else if (node.isEnd) setDraggedNodeType('end');
     else {
-      toggleWall(row, col);
-      setDraggedNodeType('wall');
+      //drawOnGrid(row, col);
+      toggleWall(row,col);
+      setDraggedNodeType('draw');
     }
     setMouseIsPressed(true);
   };
@@ -109,7 +133,7 @@ function Grid() {
     const { row, col } = cell;
     if (draggedNodeType === 'start') moveStartNode(row, col);
     else if (draggedNodeType === 'end') moveEndNode(row, col);
-    else if (draggedNodeType === 'wall') addWall(row, col);
+    else if (draggedNodeType === 'draw') applyBrush(row, col);
   };
 
   // mouse up --> stop drawing 
@@ -119,15 +143,38 @@ function Grid() {
   };
 
 
-  const toggleWall = (row, col) => {
+  // const toggleWall = (row, col) => {
+  //
+  //   setGrid((prevGrid) =>
+  //     prevGrid.map((r) =>
+  //       r.map((node) =>
+  //         node.row === row && node.col === col && !node.isStart && !node.isEnd
+  //           ? { ...node, isWall: !node.isWall }
+  //           : node
+  //       )
+  //     )
+  //   );
+  // };
 
+
+  const toggleWall = (row, col) => {
     setGrid((prevGrid) =>
       prevGrid.map((r) =>
-        r.map((node) =>
-          node.row === row && node.col === col && !node.isStart && !node.isEnd
-            ? { ...node, isWall: !node.isWall }
-            : node
-        )
+        r.map((node) => {
+          if (node.row === row && node.col === col && !node.isStart && !node.isEnd) {
+            
+            // if brush = wall, it becomes toggle on/off
+            if (selectedBrush === 'wall') {
+              return { ...node, isWall: !node.isWall, weight: 1 };
+            } 
+            // if brush = number, apply it (no toggle)
+            else {
+              const newWeight = parseInt(selectedBrush);
+              return { ...node, isWall: false, weight: newWeight };
+            }
+          }
+          return node;
+        })
       )
     );
   };
@@ -140,6 +187,28 @@ function Grid() {
             ? { ...node, isWall: true }
             : node
         )
+      )
+    );
+  };
+
+  const applyBrush = (row, col) => {
+    setGrid((prevGrid) =>
+      prevGrid.map((r) =>
+        r.map((node) => {
+          // dont modify start/end
+          if (node.row === row && node.col === col && !node.isStart && !node.isEnd) {
+            
+            if (selectedBrush === 'wall') {
+              return { ...node, isWall: true, weight: 1 };
+            } 
+            // if brush is a number, remove wall and set weight
+            else {
+              const newWeight = parseInt(selectedBrush);
+              return { ...node, isWall: false, weight: newWeight };
+            }
+          }
+          return node;
+        })
       )
     );
   };
@@ -354,6 +423,10 @@ function Grid() {
           isPath: false,
           previousNode: null,
           isWall: false,
+          distance: Infinity,
+          gScore: Infinity,
+          fScore: Infinity,
+          weight: 1,
         }))
       )
     );
@@ -378,6 +451,8 @@ function Grid() {
           setSelectedAlgorithm(algo);
           resetVisuals();
         }}
+        selectedBrush={selectedBrush}
+        setSelectedBrush={setSelectedBrush}
       />
 
       <div
@@ -405,6 +480,7 @@ function Grid() {
                   isVisited={node.isVisited}
                   isPath={node.isPath}
                   onPointerDown={(e) => handlePointerDown(e, node.row, node.col)}
+                  weight={node.weight}
                 />
               ))}
             </div>
