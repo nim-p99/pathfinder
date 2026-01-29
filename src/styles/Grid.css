@@ -5,12 +5,21 @@
   width: 100vw;
   overflow: visible;
   touch-action: none;
+  flex-grow: 1;
+  align-items: center;
 }
 
 .grid {
   display: inline-block;
+  transform-origin: center center;
 }
 
 .grid-row {
   display: flex;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
 }

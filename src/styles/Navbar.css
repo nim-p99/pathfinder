@@ -1,6 +1,7 @@
 .navbar {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 8px;
   background: #1e1e1e;
@@ -9,19 +10,50 @@
   top: 0;
   z-index: 10;
   flex-wrap: wrap;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.navbar select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: #333;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
 }
 
 .navbar button {
-  padding: 0px 14px;
+  padding: 8px 12px;
   cursor: pointer;
   min-height: 44px;
   font-size: 14px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.navbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.start-btn {
+  background-color: #2b722f !important;
+  color: white !important;
+  font-weight: 600 !important;
+  flex-grow: 1; 
+  max-width: 200px;
 }
 
 .speed-control {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 12px;
+  background: #333;
+  padding: 5px 10px;
+  border-radius: 20px;
 }
 
 .algo-select {
@@ -33,9 +65,31 @@
   margin-right: 10px;
 }
 
-.start-btn {
-  background-color: #2b722f; /* Greenish start button */
-  color: white;
-  border: none;
-  font-weight: bold;
+@media (max-width: 768px) {
+  .navbar {
+    padding: 10px 5px;
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  .navbar select {
+    flex: 1 1 45%;
+    font-size: 13px;
+  }
+
+  .navbar button {
+    font-size: 13px;
+    padding: 8px 10px;
+    flex: 1 1 30%; 
+  }
+
+  .start-btn {
+    flex: 1 1 100%; 
+    order: -1; 
+  }
+
+  .speed-control {
+    flex: 1 1 100%; 
+    justify-content: center;
+  }
 }

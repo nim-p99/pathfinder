@@ -61,8 +61,11 @@ function Grid() {
   // scale grid to fit inside window 
   useEffect(() => {
     const updateScale = () => {
+      const navbar = document.querySelector('.navbar');
+      const navHeight = navbar ? navbar.offsetHeight : 60;
+
       const availableWidth = window.innerWidth;
-      const availableHeight = window.innerHeight - NAVBAR_HEIGHT;
+      const availableHeight = window.innerHeight - navHeight;
 
       const scaleX = availableWidth / (NUM_COLS * NODE_SIZE);
       const scaleY = availableHeight / (NUM_ROWS * NODE_SIZE);
