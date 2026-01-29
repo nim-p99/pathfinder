@@ -472,7 +472,7 @@ function Grid() {
           className="grid"
           style={{
             transform: `scale(${scale})`,
-            transformOrigin: 'center center',
+            transformOrigin: 'top center',
           }}
         >
           {grid.map((row, rowIdx) => (
