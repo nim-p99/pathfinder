@@ -61,17 +61,20 @@ function Grid() {
   // scale grid to fit inside window 
   useEffect(() => {
     const updateScale = () => {
-      const navbar = document.querySelector('.navbar');
-      const navHeight = navbar ? navbar.offsetHeight : 60;
+      const wrapper = document.querySelector('.grid-wrapper');
 
-      const availableWidth = window.innerWidth;
-      const availableHeight = window.innerHeight - navHeight;
+      if (wrapper) {
 
-      const scaleX = availableWidth / (NUM_COLS * NODE_SIZE);
-      const scaleY = availableHeight / (NUM_ROWS * NODE_SIZE);
+        const availableWidth = wrapper.clientWidth;
+        const availableHeight = wrapper.clientHeight;
 
-      setScale(Math.min(scaleX, scaleY, 1)); // 1 = max 
+        const scaleX = availableWidth / (NUM_COLS * NODE_SIZE);
+        const scaleY = availableHeight / (NUM_ROWS * NODE_SIZE);
+
+        setScale(Math.min(scaleX, scaleY, 1)); // 1 = max 
+      }
     };
+      
 
     updateScale();
     window.addEventListener('resize', updateScale);
